@@ -1,5 +1,6 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 
 def calculate_cutting_layout(main_width, main_height, cut_width, cut_height):
@@ -13,10 +14,7 @@ def calculate_cutting_layout(main_width, main_height, cut_width, cut_height):
     waste_percentage = (remaining_area / total_main_area) * 100  # Calculate waste percentage
     return total_pieces, fit_horizontally, fit_vertically, remaining_area, waste_percentage
 
-def visualize_cutting(main_width, main_height, cut_width, cut_height):
-    total_pieces, fit_horizontally, fit_vertically, remaining_area, waste_percentage = calculate_cutting_layout(
-        main_width, main_height, cut_width, cut_height)
-    
+def visualize_cutting(main_width, main_height, cut_width, cut_height, fit_horizontally, fit_vertically, remaining_width, remaining_height):
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.set_xlim(0, main_width)
     ax.set_ylim(0, main_height)
@@ -24,25 +22,44 @@ def visualize_cutting(main_width, main_height, cut_width, cut_height):
     ax.set_yticks(np.arange(0, main_height+1, cut_height))
     ax.grid(True, linestyle='--', linewidth=0.5)
     
-    ax.add_patch(plt.Rectangle((0, 0), main_width, main_height, fill=False, edgecolor='black', linewidth=2))
+    # Draw main panel
+    ax.add_patch(plt.Rectangle((0, 0), main_width, main_height, fill=False, edgecolor='black', linewidth=2, label="Main Panel"))
     
+    # Draw good panels
     for i in range(fit_horizontally):
         for j in range(fit_vertically):
             ax.add_patch(plt.Rectangle((i * cut_width, j * cut_height), cut_width, cut_height, fill=True, color='lightblue', edgecolor='black'))
-    
-    ax.set_title(f"Cutting Layout: {total_pieces} pieces fit")
+
+    # Draw remaining areas
+    if remaining_width > 0:
+        ax.add_patch(plt.Rectangle((fit_horizontally * cut_width, 0), remaining_width, main_height, fill=True, color='red', alpha=0.5, label="Waste Area"))
+    if remaining_height > 0:
+        ax.add_patch(plt.Rectangle((0, fit_vertically * cut_height), main_width, remaining_height, fill=True, color='red', alpha=0.5))
+
+    # Add legend
+    ax.legend(loc="upper right", fontsize="small")
+
+    ax.set_title(f"Cutting Layout")
     plt.xlabel("Width (cm)")
     plt.ylabel("Height (cm)")
     st.pyplot(fig)
 
 def main():
     st.title("Panel Cutting Optimizer")
+    st.markdown("""### Instructions:
+    1. Enter the dimensions of your main panel and smaller panels.
+    2. Provide the cost and quantity details.
+    3. Click **Generate Cutting Layout** to see results.
+    """)
     
     # Inputs
+    st.markdown("### Panel Dimensions")
     main_width = st.number_input("Enter the width of the main panel (cm):", min_value=1)
     main_height = st.number_input("Enter the height of the main panel (cm):", min_value=1)
     cut_width = st.number_input("Enter the width of the cut panel (cm):", min_value=1)
     cut_height = st.number_input("Enter the height of the cut panel (cm):", min_value=1)
+
+    st.markdown("### Costs and Quantities")
     quantity_main_panels = st.number_input("Enter the quantity of main panels:", min_value=1)
     cost_per_sqm = st.number_input("Enter the cost per square meter (€):", min_value=0.0, format="%.2f")
     additional_costs = st.number_input("Enter additional costs (e.g., transport) (€):", min_value=0.0, format="%.2f")
@@ -71,7 +88,7 @@ def main():
         cost_per_sqm_of_smaller_panel = cost_per_good_panel / cut_panel_area
 
         # Outputs
-        st.write(f"### Results")
+        st.markdown("### Results")
         st.write(f"Total quantity of smaller panels (before discard): **{total_smaller_panels}**")
         st.write(f"Total good panels (after defects): **{int(total_good_panels)}**")
         st.write(f"Remaining unused area (per main panel): **{remaining_area / 10000:.2f} sqm**")
@@ -79,8 +96,9 @@ def main():
         st.write(f"Cost per square meter (of smaller panel): **€{cost_per_sqm_of_smaller_panel:.2f}**")
         st.write(f"Cost per single good panel: **€{cost_per_good_panel:.2f}**")
         st.write(f"Total cost (including additional costs and cutting waste): **€{adjusted_total_cost:.2f}**")
-        
-        visualize_cutting(main_width, main_height, cut_width, cut_height)
+
+        # Visualize layout
+        visualize_cutting(main_width, main_height, cut_width, cut_height, fit_horizontally, fit_vertically, main_width - fit_horizontally * cut_width, main_height - fit_vertically * cut_height)
 
 if __name__ == "__main__":
     main()
