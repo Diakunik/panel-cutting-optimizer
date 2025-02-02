@@ -29,7 +29,35 @@ def calculate_cutting_layout(main_width, main_height, cut_width, cut_height):
     remaining_area = (remaining_width * main_height) + (remaining_height * main_width) - (remaining_width * remaining_height)
     total_main_area = main_width * main_height
     waste_percentage = (remaining_area / total_main_area) * 100
-    return total_pieces, fit_horizontally, fit_vertically, remaining_area, waste_percentage
+    return total_pieces, fit_horizontally, fit_vertically, remaining_area, waste_percentage, remaining_width, remaining_height
+
+def visualize_cutting(main_width, main_height, cut_width, cut_height, fit_horizontally, fit_vertically, remaining_width, remaining_height):
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.set_xlim(0, main_width)
+    ax.set_ylim(0, main_height)
+    ax.set_xticks(np.arange(0, main_width+1, cut_width))
+    ax.set_yticks(np.arange(0, main_height+1, cut_height))
+    ax.grid(True, linestyle='--', linewidth=0.5)
+    
+    # Draw main panel
+    ax.add_patch(plt.Rectangle((0, 0), main_width, main_height, fill=False, edgecolor='black', linewidth=2, label="Main Panel"))
+    
+    # Draw cut panels
+    for i in range(fit_horizontally):
+        for j in range(fit_vertically):
+            ax.add_patch(plt.Rectangle((i * cut_width, j * cut_height), cut_width, cut_height, fill=True, color='lightblue', edgecolor='black'))
+    
+    # Draw remaining areas
+    if remaining_width > 0:
+        ax.add_patch(plt.Rectangle((fit_horizontally * cut_width, 0), remaining_width, main_height, fill=True, color='red', alpha=0.5, label="Waste Area"))
+    if remaining_height > 0:
+        ax.add_patch(plt.Rectangle((0, fit_vertically * cut_height), main_width, remaining_height, fill=True, color='red', alpha=0.5))
+    
+    ax.legend(loc="upper right", fontsize="small")
+    ax.set_title(f"Cutting Layout")
+    plt.xlabel("Width (cm)")
+    plt.ylabel("Height (cm)")
+    st.pyplot(fig)
 
 def main():
     st.title("Panel Cutting Optimizer with Inventory System")
@@ -51,48 +79,10 @@ def main():
     discard_percentage_panels = st.number_input("Enter discarded panels percentage (due to defects):", min_value=0.0, max_value=100.0, format="%.2f")
     
     if st.button("Generate Cutting Layout"):
-        total_pieces, fit_horizontally, fit_vertically, remaining_area, waste_percentage = calculate_cutting_layout(
+        total_pieces, fit_horizontally, fit_vertically, remaining_area, waste_percentage, remaining_width, remaining_height = calculate_cutting_layout(
             main_width, main_height, cut_width, cut_height)
         
-        total_smaller_panels = total_pieces * quantity_main_panels
-        discard_factor = (100 - discard_percentage_panels) / 100
-        total_good_panels = total_smaller_panels * discard_factor
-
-        main_panel_area = main_width * main_height / 10000
-        total_main_panel_area = main_panel_area * quantity_main_panels
-        effective_main_panel_area = total_main_panel_area * ((100 - waste_percentage) / 100)
-
-        cost_per_main_panel = cost_per_sqm * main_panel_area
-        total_cost = (cost_per_main_panel * quantity_main_panels) + additional_costs
-        adjusted_total_cost = total_cost / ((100 - waste_percentage) / 100)
-        cost_per_good_panel = adjusted_total_cost / total_good_panels
-
-        cut_panel_area = cut_width * cut_height / 10000
-        cost_per_sqm_of_smaller_panel = cost_per_good_panel / cut_panel_area
-        
-        # Save panel data to inventory
-        new_entry = {
-            "Panel Name": panel_name,
-            "Date": str(panel_date),
-            "Width": main_width,
-            "Height": main_height,
-            "Quantity": quantity_main_panels,
-            "Cost per Sqm (€)": cost_per_sqm,
-            "Total Cost (€)": adjusted_total_cost,
-            "Total Smaller Panels": total_smaller_panels,
-            "Good Panels After Discard": int(total_good_panels)
-        }
-        saved_data.append(new_entry)
-        save_data(saved_data)
-        
-        # Display results
-        st.write("### Results")
-        st.write(f"Total quantity of smaller panels (before discard): **{total_smaller_panels}**")
-        st.write(f"Total good panels (after defects): **{int(total_good_panels)}**")
-        st.write(f"Cutting waste percentage: **{waste_percentage:.2f}%**")
-        st.write(f"Cost per square meter (of smaller panel): **€{cost_per_sqm_of_smaller_panel:.2f}**")
-        st.write(f"Cost per single good panel: **€{cost_per_good_panel:.2f}**")
-        st.write(f"Total cost (including additional costs and cutting waste): **€{adjusted_total_cost:.2f}**")
+        visualize_cutting(main_width, main_height, cut_width, cut_height, fit_horizontally, fit_vertically, remaining_width, remaining_height)
         
     # Display saved inventory data
     st.write("### Saved Panel Data (Inventory)")
