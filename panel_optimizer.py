@@ -22,24 +22,27 @@ def visualize_cutting(main_width, main_height, cut_width, cut_height, fit_horizo
     ax.set_yticks(np.arange(0, main_height+1, cut_height))
     ax.grid(True, linestyle='--', linewidth=0.5)
     
-    # Draw main panel
-    ax.add_patch(plt.Rectangle((0, 0), main_width, main_height, fill=False, edgecolor='black', linewidth=2, label="Main Panel"))
+    # Set background color to mimic paper texture
+    ax.set_facecolor("#f5f5dc")  # Light beige color like paper
     
-    # Draw good panels
+    # Draw main panel with a paper-like texture
+    ax.add_patch(plt.Rectangle((0, 0), main_width, main_height, fill=True, edgecolor='black', linewidth=2, facecolor='#e6d5b8', label="Main Panel"))
+    
+    # Draw good panels with a slightly darker shade
     for i in range(fit_horizontally):
         for j in range(fit_vertically):
-            ax.add_patch(plt.Rectangle((i * cut_width, j * cut_height), cut_width, cut_height, fill=True, color='lightblue', edgecolor='black'))
+            ax.add_patch(plt.Rectangle((i * cut_width, j * cut_height), cut_width, cut_height, fill=True, color='#d4af8f', edgecolor='black'))
 
-    # Draw remaining areas
+    # Draw remaining areas as waste
     if remaining_width > 0:
-        ax.add_patch(plt.Rectangle((fit_horizontally * cut_width, 0), remaining_width, main_height, fill=True, color='red', alpha=0.5, label="Waste Area"))
+        ax.add_patch(plt.Rectangle((fit_horizontally * cut_width, 0), remaining_width, main_height, fill=True, color='#c4a484', alpha=0.5, label="Waste Area"))
     if remaining_height > 0:
-        ax.add_patch(plt.Rectangle((0, fit_vertically * cut_height), main_width, remaining_height, fill=True, color='red', alpha=0.5))
+        ax.add_patch(plt.Rectangle((0, fit_vertically * cut_height), main_width, remaining_height, fill=True, color='#c4a484', alpha=0.5))
 
     # Add legend
     ax.legend(loc="upper right", fontsize="small")
-
-    ax.set_title(f"Cutting Layout")
+    
+    ax.set_title(f"Cutting Layout - Paper Style")
     plt.xlabel("Width (cm)")
     plt.ylabel("Height (cm)")
     st.pyplot(fig)
@@ -97,7 +100,7 @@ def main():
         st.write(f"Cost per single good panel: **€{cost_per_good_panel:.2f}**")
         st.write(f"Total cost (including additional costs and cutting waste): **€{adjusted_total_cost:.2f}**")
 
-        # Visualize layout
+        # Visualize layout with paper effect
         visualize_cutting(main_width, main_height, cut_width, cut_height, fit_horizontally, fit_vertically, main_width - fit_horizontally * cut_width, main_height - fit_vertically * cut_height)
 
 if __name__ == "__main__":
