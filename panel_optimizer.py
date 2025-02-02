@@ -44,6 +44,8 @@ def main():
     quantity_main_panels = st.number_input("Enter the quantity of main panels:", min_value=1)
     cost_per_sqm = st.number_input("Enter the cost per square meter (€):", min_value=0.0, format="%.2f")
     additional_costs = st.number_input("Enter additional costs (e.g., transport) (€):", min_value=0.0, format="%.2f")
+    discard_percentage_panels = st.number_input("Enter discarded panels percentage (due to defects):", min_value=0.0, max_value=100.0, format="%.2f")
+    cutting_waste_percentage = st.number_input("Enter cutting waste percentage (from processing):", min_value=0.0, max_value=100.0, format="%.2f")
 
     if st.button("Generate Cutting Layout"):
         total_pieces, fit_horizontally, fit_vertically, remaining_area = calculate_cutting_layout(
@@ -51,20 +53,28 @@ def main():
         
         # Calculations
         total_smaller_panels = total_pieces * quantity_main_panels
+        discard_factor = (100 - discard_percentage_panels) / 100  # Retain only good panels
+        total_good_panels = total_smaller_panels * discard_factor
+
         main_panel_area = main_width * main_height / 10000  # Convert to sqm
         total_main_panel_area = main_panel_area * quantity_main_panels
-        remaining_area_sqm = remaining_area / 10000  # Convert to sqm
+
+        cutting_waste_factor = (100 - cutting_waste_percentage) / 100
+        effective_main_panel_area = total_main_panel_area * cutting_waste_factor
+
         cost_per_main_panel = cost_per_sqm * main_panel_area
         total_cost = (cost_per_main_panel * quantity_main_panels) + additional_costs
-        cost_per_smaller_panel = total_cost / total_smaller_panels
-        
+        adjusted_total_cost = total_cost / cutting_waste_factor  # Adjust for waste cost
+        cost_per_good_panel = adjusted_total_cost / total_good_panels
+
         # Outputs
         st.write(f"### Results")
-        st.write(f"Total quantity of smaller panels: **{total_smaller_panels}**")
-        st.write(f"Remaining unused area (per main panel): **{remaining_area_sqm:.2f} sqm**")
+        st.write(f"Total quantity of smaller panels (before discard): **{total_smaller_panels}**")
+        st.write(f"Total good panels (after defects): **{int(total_good_panels)}**")
+        st.write(f"Remaining unused area (per main panel): **{remaining_area / 10000:.2f} sqm**")
         st.write(f"Cost per square meter: **€{cost_per_sqm:.2f}**")
-        st.write(f"Cost per single smaller panel: **€{cost_per_smaller_panel:.2f}**")
-        st.write(f"Total cost (including additional costs): **€{total_cost:.2f}**")
+        st.write(f"Cost per single good panel: **€{cost_per_good_panel:.2f}**")
+        st.write(f"Total cost (including additional costs and cutting waste): **€{adjusted_total_cost:.2f}**")
         
         visualize_cutting(main_width, main_height, cut_width, cut_height)
 
